@@ -48,56 +48,113 @@ class StaticShieldAdmin {
 	 * @param      string    $version    The version of this plugin.
 	 */
 	public function __construct( $pluginName, $version ) {
-
 		$this->pluginName = $pluginName;
 		$this->version = $version;
 
 	}
 
-	/**
-	 * Register the stylesheets for the admin area.
-	 *
-	 * @since    1.0.0
-	 */
-	public function enqueueStyles() {
+    /**
+     * Enqueue admin styles.
+     */
+    public function enqueueStyles() {
+        wp_enqueue_style(
+            $this->pluginName,
+            STATIC_SHIELD_URL . 'admin/css/static-shield-admin.css',
+            [],
+            $this->version,
+            'all'
+        );
+    }
 
-		/**
-		 * This function is provided for demonstration purposes only.
-		 *
-		 * An instance of this class should be passed to the run() function
-		 * defined in Plugin_Name_Loader as all of the hooks are defined
-		 * in that particular class.
-		 *
-		 * The Plugin_Name_Loader will then create the relationship
-		 * between the defined hooks and the functions defined in this
-		 * class.
-		 */
+    /**
+     * Enqueue admin scripts.
+     */
+    public function enqueueScripts() {
+        wp_enqueue_script(
+            $this->pluginName,
+            STATIC_SHIELD_URL . 'admin/js/static-shield-admin.js',
+            ['jquery'],
+            $this->version,
+            true
+        );
+    }
 
-		wp_enqueue_style( $this->pluginName, STATIC_SHIELD_URL . 'css/static-shield-admin.css', array(), $this->version, 'all' );
+    /**
+     * Add admin menu page.
+     */
+    public function addAdminMenu() {
+        add_menu_page(
+            'Static Shield',
+            'Static Shield',
+            'manage_options',
+            $this->pluginName,
+            [$this, 'renderAdminPage'],
+            'dashicons-shield',
+            75
+        );
+    }
 
-	}
+    /**
+     * Render admin page using partial template.
+     */
+    public function renderAdminPage() {
+        $apiKey = esc_attr( get_option('static_shield_api_key') );
+        $manualExportNonce = wp_create_nonce('static_shield_manual_export');
 
-	/**
-	 * Register the JavaScript for the admin area.
-	 *
-	 * @since    1.0.0
-	 */
-	public function enqueueScripts() {
+        // Include partial for admin display
+        include STATIC_SHIELD_PATH . 'admin/partials/static-shield-admin-display.php';
+    }
 
-		/**
-		 * This function is provided for demonstration purposes only.
-		 *
-		 * An instance of this class should be passed to the run() function
-		 * defined in Plugin_Name_Loader as all of the hooks are defined
-		 * in that particular class.
-		 *
-		 * The Plugin_Name_Loader will then create the relationship
-		 * between the defined hooks and the functions defined in this
-		 * class.
-		 */
+    /**
+     * Register plugin settings.
+     */
+    public function registerSettings() {
+        register_setting('static_shield_options_group', 'static_shield_api_key');
 
-		wp_enqueue_script( $this->pluginName, STATIC_SHIELD_URL . 'js/static-shield-admin.js', array( 'jquery' ), $this->version, false );
+        add_settings_section(
+            'static_shield_main_section',
+            'Cloudflare R2 Settings',
+            function() { echo '<p>Enter your Cloudflare R2 API key below.</p>'; },
+            'static_shield'
+        );
 
-	}
+        add_settings_field(
+            'static_shield_api_key',
+            'R2 API Key',
+            [$this, 'renderApiKeyField'],
+            'static_shield',
+            'static_shield_main_section'
+        );
+    }
 
+    /**
+     * Render API key input field.
+     */
+    public function renderApiKeyField() {
+        $apiKey = esc_attr( get_option('static_shield_api_key') );
+        echo "<input type='text' name='static_shield_api_key' value='{$apiKey}' class='regular-text'>";
+    }
+
+    /**
+     * Handle manual export action.
+     */
+    public function handleManualExport() {
+        if ( isset($_POST['static_shield_manual_export']) && check_admin_referer('static_shield_manual_export') ) {
+            add_action('admin_notices', function() {
+                echo '<div class="notice notice-success is-dismissible"><p>Manual export triggered!</p></div>';
+            });
+        }
+    }
+
+    /**
+     * Add a "Settings" link next to Deactivate button in plugins list.
+     *
+     * @param array $links Existing links.
+     * @return array Modified links.
+     */
+    public function addPluginActionLinks( $links ) {
+        $settingsLink = '<a href="' . admin_url( 'admin.php?page=' . $this->pluginName ) . '">Settings</a>';
+        $links[] = $settingsLink;
+        return $links;
+    }
 }

@@ -31,6 +31,7 @@ define( 'STATIC_SHIELD_VERSION', '1.0.0' );
 
 define( 'STATIC_SHIELD_PATH', plugin_dir_path( __FILE__ ) );
 define( 'STATIC_SHIELD_URL', plugin_dir_url( __FILE__ ) );
+define( 'STATIC_SHIELD_BASENAME', plugin_basename( __FILE__ ) );
 
 require_once __DIR__ . '/vendor/autoload.php';
 

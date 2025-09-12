@@ -21,6 +21,12 @@ namespace StaticShield;
  * @subpackage Static_Shield/includes
  */
 class StaticShieldDeactivator {
+    /**
+     * Run tasks on plugin deactivation.
+     *
+     * @since    1.0.0
+     * @return   void
+     */
 	public static function deactivate() {
 
 	}

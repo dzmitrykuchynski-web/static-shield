@@ -99,6 +99,14 @@ class StaticShield {
 
         $this->loader->addAction( 'admin_enqueue_scripts', $pluginAdmin, 'enqueueStyles' );
         $this->loader->addAction( 'admin_enqueue_scripts', $pluginAdmin, 'enqueueScripts' );
+        $this->loader->addAction( 'admin_menu', $pluginAdmin, 'addAdminMenu' );
+        $this->loader->addAction( 'admin_init', $pluginAdmin, 'registerSettings' );
+        $this->loader->addAction( 'admin_init', $pluginAdmin, 'handleManualExport' );
+        $this->loader->addFilter(
+            'plugin_action_links_' . STATIC_SHIELD_BASENAME,
+            $pluginAdmin,
+            'addPluginActionLinks'
+        );
     }
 
     /**

@@ -22,8 +22,24 @@ namespace StaticShield;
  */
 
 class StaticShieldActivator {
-	public static function activate() {
-        add_option( 'static_shield_version', STATIC_SHIELD_VERSION );
-	}
+    /**
+     * Run tasks on plugin activation.
+     *
+     * @since    1.0.0
+     * @return   void
+     */
+    public static function activate() {
+        if ( get_option( 'static_shield_version' ) === false ) {
+            add_option( 'static_shield_version', STATIC_SHIELD_VERSION );
+        } else {
+            update_option( 'static_shield_version', STATIC_SHIELD_VERSION );
+        }
 
+        $uploadDir = wp_upload_dir();
+        $staticShieldDir = trailingslashit( $uploadDir['basedir'] ) . 'static-shield-builds';
+
+        if ( ! file_exists( $staticShieldDir ) ) {
+            wp_mkdir_p( $staticShieldDir );
+        }
+    }
 }
