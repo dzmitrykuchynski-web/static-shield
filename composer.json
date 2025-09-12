@@ -1,0 +1,13 @@
+{
+  "name": "alreadymedia/static-shield",
+  "description": "Automatically generates static site snapshots, archives them, and uploads to Cloudflare R2.",
+  "type": "wordpress-plugin",
+  "license": "GPL-2.0+",
+  "autoload": {
+    "psr-4": {
+      "StaticShield\\": "includes/",
+      "StaticShield\\Admin\\": "admin/"
+    }
+  },
+  "require": {}
+}
