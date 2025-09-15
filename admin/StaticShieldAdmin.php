@@ -1,6 +1,9 @@
 <?php
 namespace StaticShield\Admin;
 
+use StaticShield\StaticShieldExporter;
+use WP_Post;
+
 /**
  * The admin-specific functionality of the plugin.
  *
@@ -139,12 +142,48 @@ class StaticShieldAdmin {
      * Handle manual export action.
      */
     public function handleManualExport() {
-        if ( isset($_POST['static_shield_manual_export']) && check_admin_referer('static_shield_manual_export') ) {
-            add_action('admin_notices', function() {
-                echo '<div class="notice notice-success is-dismissible"><p>Manual export triggered!</p></div>';
+        if ( isset($_POST['static_shield_manual_export'])
+            && check_admin_referer('static_shield_manual_export') ) {
+
+            $exporter = new StaticShieldExporter();
+            $exporter->runExport();
+
+            add_action('admin_notices', function() use ($exporter) {
+                $zipPath = content_url( 'static-shield-builds.zip' );
+                echo '<div class="notice notice-success is-dismissible">
+                    <p>Manual export completed! 
+                       <a href="' . esc_url($zipPath) . '" target="_blank">Download ZIP</a>
+                    </p>
+                  </div>';
             });
         }
     }
+
+    /**
+     * Trigger static export after post update.
+     *
+     * @param int     $postId
+     * @param WP_Post $post
+     * @param bool    $update
+     */
+    public function handlePostUpdate( $postId, $post, $update ) {
+        if ( wp_is_post_autosave( $postId ) || wp_is_post_revision( $postId ) ) {
+            return;
+        }
+echo "<pre>";
+var_dump($update);
+echo "</pre>";
+//die();
+        if ( $update ) {
+            $exporter = new StaticShieldExporter();
+            $exporter->runExport();
+
+            add_action( 'admin_notices', function() {
+                echo '<div class="notice notice-success is-dismissible"><p>Static build regenerated after post update!</p></div>';
+            });
+        }
+    }
+
 
     /**
      * Add a "Settings" link next to Deactivate button in plugins list.

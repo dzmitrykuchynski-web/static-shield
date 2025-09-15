@@ -102,6 +102,7 @@ class StaticShield {
         $this->loader->addAction( 'admin_menu', $pluginAdmin, 'addAdminMenu' );
         $this->loader->addAction( 'admin_init', $pluginAdmin, 'registerSettings' );
         $this->loader->addAction( 'admin_init', $pluginAdmin, 'handleManualExport' );
+        $this->loader->addAction( 'save_post', $pluginAdmin, 'handlePostUpdate', 10, 3 );
         $this->loader->addFilter(
             'plugin_action_links_' . STATIC_SHIELD_BASENAME,
             $pluginAdmin,

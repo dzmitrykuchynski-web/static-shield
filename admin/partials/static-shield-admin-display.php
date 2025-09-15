@@ -47,7 +47,13 @@
     <div class="card">
         <h3>Activity Log</h3>
         <div class="terminal">
-
+            <?php if (!empty($exportLog)): ?>
+                <?php foreach ($exportLog as $line): ?>
+                    <?php echo esc_html($line) . '<br>'; ?>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <p>No export logs yet.</p>
+            <?php endif; ?>
         </div>
     </div>
 
