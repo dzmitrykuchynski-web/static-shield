@@ -9,7 +9,7 @@ use StaticShield\Admin\StaticShieldAdmin;
  * Defines internationalization, admin-specific hooks, and public-facing hooks.
  * Keeps unique identifier and version.
  *
- * @link       https://www.alreadymedia.com/
+ * @link       https://www.example.com/
  * @since      1.0.0
  *
  * @package    Static_Shield

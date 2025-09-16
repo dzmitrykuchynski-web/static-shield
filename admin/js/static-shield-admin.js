@@ -59,7 +59,6 @@ document.addEventListener('DOMContentLoaded', () => {
 	const cfForm = document.querySelector('#static-shield-cf-form');
 	if (cfForm) {
 		const saveBtn = cfForm.querySelector('input[type="submit"]');
-		const apiInput = cfForm.querySelector('input[name="static_shield_api_key"]');
 
 		cfForm.addEventListener('submit', async (e) => {
 			e.preventDefault();
@@ -75,9 +74,14 @@ document.addEventListener('DOMContentLoaded', () => {
 					method: 'POST',
 					credentials: 'same-origin',
 					body: new URLSearchParams({
-						action: 'static_shield_save_cf_token',
+						action: 'static_shield_save_cf_settings',
 						_wpnonce: formData.get('_wpnonce'),
-						token: formData.get('static_shield_api_key')
+						api_key: formData.get('static_shield_cf_api_key'),
+						account_id: formData.get('static_shield_cf_account_id'),
+						bucket: formData.get('static_shield_cf_bucket'),
+						access_key_id: formData.get('static_shield_cf_access_key_id'),
+						secret_access_key: formData.get('static_shield_cf_secret_access_key'),
+						use_cf: formData.get('static_shield_use_cf') ? 1 : 0
 					})
 				});
 
@@ -89,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
 					console.error(result.data.message);
 				}
 			} catch (err) {
-				console.error('Error saving token:', err);
+				console.error('Error saving settings:', err);
 				saveBtn.value = 'Error';
 			} finally {
 				setTimeout(() => {

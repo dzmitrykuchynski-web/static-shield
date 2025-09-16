@@ -75,7 +75,34 @@
                     <?php wp_nonce_field('static_shield_save_cf_settings'); ?>
                     <label>
                         API Token
-                        <input type="text" name="static_shield_api_key" value="<?php echo esc_attr(get_option('static_shield_api_key')); ?>">
+                        <input type="text" name="static_shield_cf_api_key"
+                               value="<?php echo esc_attr(get_option('static_shield_cf_api_key')); ?>">
+                    </label>
+                    <label>
+                        Access Key ID
+                        <input type="text" name="static_shield_cf_access_key_id"
+                               value="<?php echo esc_attr(get_option('static_shield_cf_access_key_id')); ?>">
+                    </label>
+                    <label>
+                        Secret Access Key
+                        <input type="text" name="static_shield_cf_secret_access_key"
+                               value="<?php echo esc_attr(get_option('static_shield_cf_secret_access_key')); ?>">
+                    </label>
+                    <label>
+                        Account ID
+                        <input type="text" name="static_shield_cf_account_id"
+                               value="<?php echo esc_attr(get_option('static_shield_cf_account_id')); ?>">
+                    </label>
+                    <label>
+                        Bucket Name
+                        <input type="text" name="static_shield_cf_bucket"
+                               value="<?php echo esc_attr(get_option('static_shield_cf_bucket')); ?>">
+                    </label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" name="static_shield_use_cf" value="1"
+                            <?php checked(1, get_option('static_shield_use_cf')); ?>>
+                        <span class="slider"></span>
+                        <span class="toggle-label">Enable Workers</span>
                     </label>
                     <input type="submit" value="Save Settings">
                 </form>

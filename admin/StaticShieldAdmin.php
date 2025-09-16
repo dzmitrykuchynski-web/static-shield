@@ -1,13 +1,14 @@
 <?php
 namespace StaticShield\Admin;
 
+use StaticShield\StaticShieldDeployer;
 use StaticShield\StaticShieldExporter;
 use WP_Post;
 
 /**
  * The admin-specific functionality of the plugin.
  *
- * @link       https://www.alreadymedia.com/
+ * @link       https://www.example.com/
  * @since      1.0.0
  *
  * @package    Static_Shield
@@ -101,7 +102,7 @@ class StaticShieldAdmin {
      * Render admin page using partial template.
      */
     public function renderAdminPage() {
-        $apiKey = esc_attr( get_option('static_shield_api_key') );
+        $apiKey = esc_attr( get_option('static_shield_cf_api_key') );
         $manualExportNonce = wp_create_nonce('static_shield_manual_export');
         $exporter  = new StaticShieldExporter();
         $exportLog = $exporter->getLog();
@@ -114,30 +115,12 @@ class StaticShieldAdmin {
      * Register plugin settings.
      */
     public function registerSettings() {
-        register_setting('static_shield_options_group', 'static_shield_api_key');
-
-        add_settings_section(
-            'static_shield_main_section',
-            'Cloudflare R2 Settings',
-            function() { echo '<p>Enter your Cloudflare R2 API key below.</p>'; },
-            'static_shield'
-        );
-
-        add_settings_field(
-            'static_shield_api_key',
-            'R2 API Key',
-            [$this, 'renderApiKeyField'],
-            'static_shield',
-            'static_shield_main_section'
-        );
-    }
-
-    /**
-     * Render API key input field.
-     */
-    public function renderApiKeyField() {
-        $apiKey = esc_attr( get_option('static_shield_api_key') );
-        echo "<input type='text' name='static_shield_api_key' value='{$apiKey}' class='regular-text'>";
+        register_setting('static_shield_options_group', 'static_shield_cf_api_key');
+        register_setting('static_shield_options_group', 'static_shield_cf_account_id');
+        register_setting('static_shield_options_group', 'static_shield_cf_bucket');
+        register_setting('static_shield_options_group', 'static_shield_cf_access_key_id');
+        register_setting('static_shield_options_group', 'static_shield_cf_secret_access_key');
+        register_setting('static_shield_options_group', 'static_shield_use_cf');
     }
 
     /**
@@ -148,7 +131,12 @@ class StaticShieldAdmin {
             && check_admin_referer('static_shield_manual_export') ) {
 
             $exporter = new StaticShieldExporter();
-            $exporter->runExport();
+            $zipPath  = $exporter->runExport();
+
+            if (get_option('static_shield_use_cf')) {
+                $deployer = new StaticShieldDeployer();
+                $deployer->uploadToR2($zipPath);
+            }
 
             add_action('admin_notices', function() use ($exporter) {
                 $zipPath = content_url( 'static-shield-builds.zip' );
@@ -175,7 +163,12 @@ class StaticShieldAdmin {
 
         if ( $update ) {
             $exporter = new StaticShieldExporter();
-            $exporter->runExport();
+            $zipPath  = $exporter->runExport();
+
+            if (get_option('static_shield_use_cf')) {
+                $deployer = new StaticShieldDeployer();
+                $deployer->uploadToR2($zipPath);
+            }
 
             add_action( 'admin_notices', function() {
                 echo '<div class="notice notice-success is-dismissible"><p>Static build regenerated after post update!</p></div>';
@@ -198,10 +191,10 @@ class StaticShieldAdmin {
 
     public function registerAjax() {
         add_action('wp_ajax_static_shield_get_logs', [$this, 'ajaxGetLogs']);
-        add_action('wp_ajax_static_shield_save_cf_token', [$this, 'ajaxSaveCfToken']);
+        add_action('wp_ajax_static_shield_save_cf_settings', [$this, 'ajaxSaveCfSettings']);
     }
 
-    public function ajaxSaveCfToken() {
+    public function ajaxSaveCfSettings() {
         if ( ! current_user_can('manage_options') ) {
             wp_send_json_error(['message' => 'Unauthorized'], 403);
         }
@@ -211,10 +204,21 @@ class StaticShieldAdmin {
             wp_send_json_error(['message' => 'Invalid nonce'], 403);
         }
 
-        $token = sanitize_text_field($_POST['token'] ?? '');
-        update_option('static_shield_api_key', $token);
+        $apiKey      = sanitize_text_field($_POST['api_key'] ?? '');
+        $accountId   = sanitize_text_field($_POST['account_id'] ?? '');
+        $bucket      = sanitize_text_field($_POST['bucket'] ?? '');
+        $accessKeyId = sanitize_text_field($_POST['access_key_id'] ?? '');
+        $secretKey   = sanitize_text_field($_POST['secret_access_key'] ?? '');
+        $useCf       = isset($_POST['use_cf']) ? 1 : 0;
 
-        wp_send_json_success(['message' => 'Token saved']);
+        update_option('static_shield_cf_api_key', $apiKey);
+        update_option('static_shield_cf_account_id', $accountId);
+        update_option('static_shield_cf_bucket', $bucket);
+        update_option('static_shield_cf_access_key_id', $accessKeyId);
+        update_option('static_shield_cf_secret_access_key', $secretKey);
+        update_option('static_shield_use_cf', $useCf);
+
+        wp_send_json_success(['message' => 'Settings saved']);
     }
 
     public function ajaxGetLogs() {

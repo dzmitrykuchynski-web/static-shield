@@ -11,8 +11,8 @@
  * Plugin Name:       Static Shield
  * Description:       Automatically generates a static version of your WordPress site, archives it, and uploads it to Cloudflare R2 for delivery via Cloudflare Workers. Includes automatic updates after new or edited posts, manual export controls, and an admin panel for API key management.
  * Version:           1.0.0
- * Author:            Already Media
- * Author URI:        https://www.alreadymedia.com/
+ * Author:            Static Shield
+ * Author URI:        https://www.example.com/
  * License:           GPL-2.0+
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  * Text Domain:       static_shield
@@ -43,6 +43,7 @@ use StaticShield\StaticShieldDeactivator;
  * admin-specific hooks, and public-facing site hooks.
  */
 use StaticShield\StaticShield;
+use StaticShield\StaticShieldWorkerHandler;
 
 /**
  * The code that runs during plugin activation.
@@ -60,6 +61,11 @@ function deactivateStaticShield() {
 
 register_activation_hook( __FILE__, 'activateStaticShield' );
 register_deactivation_hook( __FILE__, 'deactivateStaticShield' );
+
+// Initialize the Cloudflare Worker handler
+//add_action('plugins_loaded', function() {
+//    StaticShieldWorkerHandler::init();
+//});
 
 /**
  * Begins execution of the plugin.

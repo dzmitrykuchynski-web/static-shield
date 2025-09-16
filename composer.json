@@ -1,5 +1,5 @@
 {
-  "name": "alreadymedia/static-shield",
+  "name": "plugin/static-shield",
   "description": "Automatically generates static site snapshots, archives them, and uploads to Cloudflare R2.",
   "type": "wordpress-plugin",
   "license": "GPL-2.0+",
@@ -9,5 +9,7 @@
       "StaticShield\\Admin\\": "admin/"
     }
   },
-  "require": {}
+  "require": {
+    "aws/aws-sdk-php": "^3.0"
+  }
 }

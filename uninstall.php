@@ -5,7 +5,7 @@
  * This file removes all plugin data such as options, scheduled events,
  * and temporary directories to ensure a clean uninstall.
  *
- * @link       https://www.alreadymedia.com/
+ * @link       https://www.example.com/
  * @since      1.0.0
  * @package    Static_Shield
  */
@@ -17,7 +17,12 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 
 // Remove plugin options
 delete_option( 'static_shield_version' );
-delete_option( 'static_shield_api_key' );
+delete_option( 'static_shield_cf_api_key' );
+delete_option( 'static_shield_cf_account_id' );
+delete_option( 'static_shield_cf_bucket' );
+delete_option( 'static_shield_cf_access_key_id' );
+delete_option( 'static_shield_cf_secret_access_key' );
+delete_option( 'static_shield_use_cf' );
 delete_option( 'static_shield_last_log' );
 
 // Remove plugin build directory
