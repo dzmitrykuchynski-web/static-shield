@@ -75,7 +75,7 @@
                     <?php wp_nonce_field('static_shield_save_cf_settings'); ?>
                     <label>
                         API Token
-                        <input type="text" name="static_shield_cf_api_key" value="<?php echo esc_attr(get_option('static_shield_api_key')); ?>">
+                        <input type="text" name="static_shield_api_key" value="<?php echo esc_attr(get_option('static_shield_api_key')); ?>">
                     </label>
                     <input type="submit" value="Save Settings">
                 </form>

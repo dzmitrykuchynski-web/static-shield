@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	const cfForm = document.querySelector('#static-shield-cf-form');
 	if (cfForm) {
 		const saveBtn = cfForm.querySelector('input[type="submit"]');
-		const apiInput = cfForm.querySelector('input[name="static_shield_cf_api_key"]');
+		const apiInput = cfForm.querySelector('input[name="static_shield_api_key"]');
 
 		cfForm.addEventListener('submit', async (e) => {
 			e.preventDefault();
@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
 					body: new URLSearchParams({
 						action: 'static_shield_save_cf_token',
 						_wpnonce: formData.get('_wpnonce'),
-						token: formData.get('static_shield_cf_api_key')
+						token: formData.get('static_shield_api_key')
 					})
 				});
 
