@@ -17,6 +17,8 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 
 // Remove plugin options
 delete_option( 'static_shield_version' );
+delete_option( 'static_shield_api_key' );
+delete_option( 'static_shield_last_log' );
 
 // Remove plugin build directory
 $uploadDir = wp_upload_dir();

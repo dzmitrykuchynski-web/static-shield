@@ -1,103 +1,85 @@
 <?php
-
 /**
- * Provide a admin area view for the plugin
+ * Admin area view for the plugin
  *
- * This file is used to markup the admin-facing aspects of the plugin.
- *
- * @link       http://example.com
- * @since      1.0.0
- *
- * @package    Plugin_Name
- * @subpackage Plugin_Name/admin/partials
+ * @package    Static_Shield
+ * @subpackage Static_Shield/admin/partials
  */
 ?>
 
-<?php
+<div class="static-shield-admin">
+    <div class="sidebar">
+        <div class="plugin-logo">
+            <h2>Static Shield</h2>
+        </div>
+        <p class="version-number">Version: <b><?php echo esc_html(STATIC_SHIELD_VERSION); ?></b></p>
 
-/**
- * Provide a admin area view for the plugin
- *
- * This file is used to markup the admin-facing aspects of the plugin.
- *
- * @link       http://example.com
- * @since      1.0.0
- *
- * @package    Plugin_Name
- * @subpackage Plugin_Name/admin/partials
- */
-?>
+        <!-- Manual Export -->
+        <div class="generate-buttons-container">
+            <form method="post">
+                <input type="hidden" name="_wpnonce" value="<?php echo esc_attr($manualExportNonce); ?>">
+                <button id="run-export-btn" type="submit" name="static_shield_manual_export" class="components-button generate is-active-item">
+                    <span class="dashicons dashicons-update"></span> Run Export Now
+                </button>
+            </form>
+        </div>
 
-<div class="sidebar">
-    <h2>Static Shield</h2>
+        <!-- Navigation -->
+        <div class="nav-section">
+            <h4 class="settings-headline">Tools</h4>
+            <button type="button" class="components-button nav-tab active" data-target="activity-log">
+                <span class="dashicons dashicons-update"></span> Activity Log
+            </button>
+        </div>
 
-    <div>
-        <h4>Tools</h4>
-        <button>Activity Log</button>
-    </div>
-
-    <div>
-        <h4>Settings</h4>
-        <button>General</button>
-        <button>Claudflare Settings</button>
-    </div>
-</div>
-
-<div class="main">
-    <div class="card">
-        <h3>Activity Log</h3>
-        <div class="terminal">
-            <?php if (!empty($exportLog)): ?>
-                <?php foreach ($exportLog as $line): ?>
-                    <?php echo esc_html($line) . '<br>'; ?>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <p>No export logs yet.</p>
-            <?php endif; ?>
+        <div class="nav-section">
+            <h4 class="settings-headline">Settings</h4>
+            <button type="button" class="components-button nav-tab" data-target="cloudflare-settings">
+                <span class="dashicons dashicons-cloud"></span> Cloudflare Settings
+            </button>
         </div>
     </div>
 
-    <div class="card">
-        <h3>Export Log</h3>
-        <input type="text" placeholder="Search..." style="padding:5px; width:100%; margin-bottom:10px;">
-        <table>
-            <thead>
-            <tr>
-                <th>Code</th>
-                <th>URL</th>
-                <th>Notes</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr>
-                <td>200</td>
-                <td><a href="#">/wp-content/themes/slot/dist/img/Algeria.png</a></td>
-                <td>Added by Theme Assets Crawler</td>
-            </tr>
-            <tr>
-                <td>200</td>
-                <td><a href="#">/wp-includes/css/dist/edit-widgets/style.min.css</a></td>
-                <td>Added by Includes Directory Crawler</td>
-            </tr>
-            <tr>
-                <td>200</td>
-                <td><a href="#">/</a></td>
-                <td>Origin URL</td>
-            </tr>
-            </tbody>
-        </table>
-    </div>
+    <div class="main">
+        <!-- Activity Log Tab -->
+        <div id="tab-activity-log" class="tab-content active">
+            <div class="card">
+                <h3>Activity Log</h3>
+                <div class="terminal">
+                    <?php if (!empty($exportLog)): ?>
+                        <?php foreach ($exportLog as $line): ?>
+                            <?php
+                            $class = 'log-info';
+                            if (strpos($line, '[error]') !== false) {
+                                $class = 'log-error';
+                            } elseif (strpos($line, '[warning]') !== false) {
+                                $class = 'log-warning';
+                            }
+                            ?>
+                            <div class="<?php echo esc_attr($class); ?>">
+                                <?php echo esc_html($line); ?>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <p>No export logs yet.</p>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
 
-    <div class="card settings-card">
-        <h3>Static Shield Settings</h3>
-        <form method="post" action="">
-
-        </form>
-
-        <h4>Manual Export</h4>
-        <form method="post">
-            <input type="hidden" name="_wpnonce" value="<?php echo esc_attr($manualExportNonce); ?>">
-            <input type="submit" name="static_shield_manual_export" value="Run Export Now">
-        </form>
+        <!-- Cloudflare Settings Tab -->
+        <div id="tab-cloudflare-settings" class="tab-content" style="display:none;">
+            <div class="card settings-card">
+                <h3>Cloudflare Settings</h3>
+                <form id="static-shield-cf-form" method="post" action="">
+                    <?php wp_nonce_field('static_shield_save_cf_settings'); ?>
+                    <label>
+                        API Token
+                        <input type="text" name="static_shield_cf_api_key" value="<?php echo esc_attr(get_option('static_shield_api_key')); ?>">
+                    </label>
+                    <input type="submit" value="Save Settings">
+                </form>
+            </div>
+        </div>
     </div>
 </div>

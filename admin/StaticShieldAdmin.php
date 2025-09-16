@@ -103,6 +103,8 @@ class StaticShieldAdmin {
     public function renderAdminPage() {
         $apiKey = esc_attr( get_option('static_shield_api_key') );
         $manualExportNonce = wp_create_nonce('static_shield_manual_export');
+        $exporter  = new StaticShieldExporter();
+        $exportLog = $exporter->getLog();
 
         // Include partial for admin display
         include STATIC_SHIELD_PATH . 'admin/partials/static-shield-admin-display.php';
@@ -170,10 +172,7 @@ class StaticShieldAdmin {
         if ( wp_is_post_autosave( $postId ) || wp_is_post_revision( $postId ) ) {
             return;
         }
-echo "<pre>";
-var_dump($update);
-echo "</pre>";
-//die();
+
         if ( $update ) {
             $exporter = new StaticShieldExporter();
             $exporter->runExport();
@@ -195,5 +194,39 @@ echo "</pre>";
         $settingsLink = '<a href="' . admin_url( 'admin.php?page=' . $this->pluginName ) . '">Settings</a>';
         $links[] = $settingsLink;
         return $links;
+    }
+
+    public function registerAjax() {
+        add_action('wp_ajax_static_shield_get_logs', [$this, 'ajaxGetLogs']);
+        add_action('wp_ajax_static_shield_save_cf_token', [$this, 'ajaxSaveCfToken']);
+    }
+
+    public function ajaxSaveCfToken() {
+        if ( ! current_user_can('manage_options') ) {
+            wp_send_json_error(['message' => 'Unauthorized'], 403);
+        }
+
+        $nonce = $_POST['_wpnonce'] ?? '';
+        if ( ! wp_verify_nonce($nonce, 'static_shield_save_cf_settings') ) {
+            wp_send_json_error(['message' => 'Invalid nonce'], 403);
+        }
+
+        $token = sanitize_text_field($_POST['token'] ?? '');
+        update_option('static_shield_api_key', $token);
+
+        wp_send_json_success(['message' => 'Token saved']);
+    }
+
+    public function ajaxGetLogs() {
+        if ( ! current_user_can('manage_options') ) {
+            wp_send_json_error(['message' => 'Unauthorized'], 403);
+        }
+
+        $exporter = new StaticShieldExporter();
+        $logs     = $exporter->getLog();
+
+        wp_send_json_success([
+            'logs' => $logs,
+        ]);
     }
 }

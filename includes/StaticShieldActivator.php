@@ -35,6 +35,16 @@ class StaticShieldActivator {
             update_option( 'static_shield_version', STATIC_SHIELD_VERSION );
         }
 
+        if ( get_option( 'static_shield_api_key' ) === false ) {
+            add_option( 'static_shield_api_key', '' );
+        }
+
+        if ( get_option( 'static_shield_last_log' ) === false ) {
+            add_option( 'static_shield_api_key', '' );
+        } else {
+            update_option( 'static_shield_last_log', [] );
+        }
+
         $uploadDir = wp_upload_dir();
         $staticShieldDir = trailingslashit( $uploadDir['basedir'] ) . 'static-shield-builds';
 
