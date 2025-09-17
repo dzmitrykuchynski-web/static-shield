@@ -62,11 +62,6 @@ function deactivateStaticShield() {
 register_activation_hook( __FILE__, 'activateStaticShield' );
 register_deactivation_hook( __FILE__, 'deactivateStaticShield' );
 
-// Initialize the Cloudflare Worker handler
-//add_action('plugins_loaded', function() {
-//    StaticShieldWorkerHandler::init();
-//});
-
 /**
  * Begins execution of the plugin.
  *
@@ -83,3 +78,8 @@ function runStaticShield() {
 
 }
 runStaticShield();
+
+// Initialize the Cloudflare Worker handler
+add_action('plugins_loaded', function() {
+    StaticShieldWorkerHandler::init();
+});

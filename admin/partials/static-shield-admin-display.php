@@ -98,6 +98,11 @@
                         <input type="text" name="static_shield_cf_bucket"
                                value="<?php echo esc_attr(get_option('static_shield_cf_bucket')); ?>">
                     </label>
+                    <label>
+                        Cloudflare Worker
+                        <input type="text" name="static_shield_cf_worker"
+                               value="<?php echo esc_attr(get_option('static_shield_cf_worker')); ?>">
+                    </label>
                     <label class="toggle-switch">
                         <input type="checkbox" name="static_shield_use_cf" value="1"
                             <?php checked(1, get_option('static_shield_use_cf')); ?>>

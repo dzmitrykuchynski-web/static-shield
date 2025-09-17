@@ -59,6 +59,10 @@ class StaticShieldActivator {
             add_option( 'static_shield_cf_secret_access_key', '' );
         }
 
+        if ( get_option( 'static_shield_cf_worker' ) === false ) {
+            add_option( 'static_shield_cf_worker', 0 );
+        }
+
         if ( get_option( 'static_shield_last_log' ) === false ) {
             add_option( 'static_shield_last_log', [] );
         } else {

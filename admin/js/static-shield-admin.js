@@ -81,6 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
 						bucket: formData.get('static_shield_cf_bucket'),
 						access_key_id: formData.get('static_shield_cf_access_key_id'),
 						secret_access_key: formData.get('static_shield_cf_secret_access_key'),
+						cf_worker_url: formData.get('static_shield_cf_worker'),
 						use_cf: formData.get('static_shield_use_cf') ? 1 : 0
 					})
 				});

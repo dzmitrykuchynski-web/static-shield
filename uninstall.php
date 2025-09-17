@@ -23,6 +23,7 @@ delete_option( 'static_shield_cf_bucket' );
 delete_option( 'static_shield_cf_access_key_id' );
 delete_option( 'static_shield_cf_secret_access_key' );
 delete_option( 'static_shield_use_cf' );
+delete_option( 'static_shield_cf_worker' );
 delete_option( 'static_shield_last_log' );
 
 // Remove plugin build directory
