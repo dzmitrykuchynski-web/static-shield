@@ -80,6 +80,6 @@ function runStaticShield() {
 runStaticShield();
 
 // Initialize the Cloudflare Worker handler
-add_action('plugins_loaded', function() {
-    StaticShieldWorkerHandler::init();
-});
+//add_action('plugins_loaded', function() {
+//    StaticShieldWorkerHandler::init();
+//});
