@@ -4,6 +4,7 @@ namespace StaticShield\Admin;
 use StaticShield\StaticShieldDeployer;
 use StaticShield\StaticShieldExporter;
 use StaticShield\StaticShieldWorkerClient;
+use StaticShield\StaticShieldLoader;
 use WP_Post;
 
 /**
@@ -51,7 +52,41 @@ class StaticShieldAdmin {
     }
 
     /**
-     * Enqueue admin styles for the plugin settings page.
+     * Register all hooks for admin side through the loader.
+     *
+     * @since 1.0.0
+     * @param StaticShieldLoader $loader Loader instance.
+     * @return void
+     */
+    public function registerHooks(StaticShieldLoader $loader) {
+        // Assets
+        $loader->addAction('admin_enqueue_scripts', $this, 'enqueueStyles');
+        $loader->addAction('admin_enqueue_scripts', $this, 'enqueueScripts');
+
+        // Menu + settings
+        $loader->addAction('admin_menu', $this, 'addAdminMenu');
+        $loader->addAction('admin_init', $this, 'registerSettings');
+
+        // Manual export
+        $loader->addAction('admin_post_static_shield_manual_export', $this, 'handleManualExport');
+
+        // Post update trigger
+        $loader->addAction('save_post', $this, 'handlePostUpdate', 10, 3);
+
+        // Plugin list settings link
+        $loader->addFilter('plugin_action_links_' . STATIC_SHIELD_BASENAME, $this, 'addPluginActionLinks');
+
+        // AJAX endpoints
+        $loader->addAction('wp_ajax_static_shield_get_logs', $this, 'ajaxGetLogs');
+        $loader->addAction('wp_ajax_static_shield_save_domain_settings', $this, 'ajaxSaveDomainSettings');
+        $loader->addAction('wp_ajax_static_shield_save_worker_settings', $this, 'ajaxSaveWorkerSettings');
+        $loader->addAction('wp_ajax_static_shield_dns_list', $this, 'ajaxDnsList');
+        $loader->addAction('wp_ajax_static_shield_dns_add', $this, 'ajaxDnsAdd');
+        $loader->addAction('wp_ajax_static_shield_dns_delete', $this, 'ajaxDnsDelete');
+    }
+
+    /**
+     * Enqueue admin styles.
      *
      * @since 1.0.0
      * @return void
@@ -210,22 +245,7 @@ class StaticShieldAdmin {
     }
 
     /**
-     * Register AJAX actions for retrieving logs and saving settings.
-     *
-     * @since 1.0.0
-     * @return void
-     */
-    public function registerAjax() {
-        add_action('wp_ajax_static_shield_get_logs', [$this, 'ajaxGetLogs']);
-        add_action('wp_ajax_static_shield_save_domain_settings', [$this, 'ajaxSaveDomainSettings']);
-        add_action('wp_ajax_static_shield_save_worker_settings', [$this, 'ajaxSaveWorkerSettings']);
-        add_action('wp_ajax_static_shield_dns_list', [$this, 'ajaxDnsList']);
-        add_action('wp_ajax_static_shield_dns_add', [$this, 'ajaxDnsAdd']);
-        add_action('wp_ajax_static_shield_dns_delete', [$this, 'ajaxDnsDelete']);
-    }
-
-    /**
-     * AJAX handler for saving Cloudflare Domain settings.
+     * AJAX handler for saving domain settings.
      *
      * @since 1.0.0
      * @return void Sends JSON response.
