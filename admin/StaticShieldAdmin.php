@@ -3,6 +3,7 @@ namespace StaticShield\Admin;
 
 use StaticShield\StaticShieldDeployer;
 use StaticShield\StaticShieldExporter;
+use StaticShield\StaticShieldWorkerClient;
 use WP_Post;
 
 /**
@@ -217,6 +218,62 @@ class StaticShieldAdmin {
     public function registerAjax() {
         add_action('wp_ajax_static_shield_get_logs', [$this, 'ajaxGetLogs']);
         add_action('wp_ajax_static_shield_save_cf_settings', [$this, 'ajaxSaveCfSettings']);
+        add_action('wp_ajax_static_shield_dns_list', [$this, 'ajaxDnsList']);
+        add_action('wp_ajax_static_shield_dns_add', [$this, 'ajaxDnsAdd']);
+        add_action('wp_ajax_static_shield_dns_delete', [$this, 'ajaxDnsDelete']);
+    }
+
+    /**
+     * Get list of DNS records via Worker
+     */
+    public function ajaxDnsList() {
+        $client = new StaticShieldWorkerClient();
+        $records = $client->listDnsRecords();
+
+        if (is_wp_error($records)) {
+            wp_send_json_error(['message' => $records->get_error_message()]);
+        }
+
+        wp_send_json_success(['records' => $records]);
+    }
+
+    /**
+     * Add DNS record
+     */
+    public function ajaxDnsAdd() {
+        $client = new StaticShieldWorkerClient();
+
+        $record = [
+            'type'    => sanitize_text_field($_POST['type']),
+            'name'    => sanitize_text_field($_POST['name']),
+            'content' => sanitize_text_field($_POST['content']),
+            'ttl'     => intval($_POST['ttl'] ?? 3600),
+            'proxied' => isset($_POST['proxied']) ? (bool) $_POST['proxied'] : false,
+        ];
+
+        $result = $client->addDnsRecord($record);
+
+        if (is_wp_error($result)) {
+            wp_send_json_error(['message' => $result->get_error_message()]);
+        }
+
+        wp_send_json_success(['record' => $result]);
+    }
+
+    /**
+     * Delete DNS record
+     */
+    public function ajaxDnsDelete() {
+        $id = sanitize_text_field($_POST['id']);
+        $client = new StaticShieldWorkerClient();
+
+        $result = $client->deleteDnsRecord($id);
+
+        if (is_wp_error($result)) {
+            wp_send_json_error(['message' => $result->get_error_message()]);
+        }
+
+        wp_send_json_success(['deleted' => $id]);
     }
 
     /**

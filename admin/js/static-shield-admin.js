@@ -104,4 +104,121 @@ document.addEventListener('DOMContentLoaded', () => {
 			}
 		});
 	}
+
+	const customSelects = document.querySelectorAll(".custom-select");
+
+	customSelects.forEach(select => {
+		const selected = select.querySelector(".selected");
+		const options = select.querySelectorAll(".options li");
+		const hiddenInput = select.parentElement.querySelector("input[type=hidden]");
+
+		selected.addEventListener("click", e => {
+			e.stopPropagation();
+			select.classList.toggle("open");
+		});
+
+		options.forEach(option => {
+			option.addEventListener("click", e => {
+				e.stopPropagation();
+				selected.textContent = option.textContent;
+				hiddenInput.value = option.dataset.value;
+				select.classList.remove("open");
+			});
+		});
+	});
+
+	document.addEventListener("click", () => {
+		customSelects.forEach(select => select.classList.remove("open"));
+	});
+
+	// DNS Management
+	const dnsTableBody = document.querySelector('#dns-records-table tbody');
+	const dnsAddForm = document.querySelector('#dns-add-form');
+
+	async function loadDnsRecords() {
+		try {
+			const response = await fetch(ajaxurl + '?action=static_shield_dns_list', { credentials: 'same-origin' });
+			const result = await response.json();
+
+			dnsTableBody.innerHTML = '';
+
+			if (result.success && result.data.records && result.data.records.result) {
+				result.data.records.result.forEach(record => {
+					const tr = document.createElement('tr');
+					tr.innerHTML = `
+                    <td>${record.type}</td>
+                    <td>${record.name}</td>
+                    <td>${record.content}</td>
+                    <td>${record.ttl}</td>
+                    <td>${record.proxied ? 'Yes' : 'No'}</td>
+                    <td>
+                        <button data-id="${record.id}" class="button delete-dns">Delete</button>
+                    </td>
+                `;
+					dnsTableBody.appendChild(tr);
+				});
+			} else {
+				dnsTableBody.innerHTML = '<tr><td colspan="6">No records found.</td></tr>';
+			}
+		} catch (err) {
+			console.error('Error loading DNS records:', err);
+		}
+	}
+
+	// Handle Add Record
+	if (dnsAddForm) {
+		dnsAddForm.addEventListener('submit', async e => {
+			e.preventDefault();
+			const formData = new FormData(dnsAddForm);
+
+			const response = await fetch(ajaxurl, {
+				method: 'POST',
+				credentials: 'same-origin',
+				body: new URLSearchParams({
+					action: 'static_shield_dns_add',
+					type: formData.get('type'),
+					name: formData.get('name'),
+					content: formData.get('content'),
+					ttl: formData.get('ttl'),
+					proxied: formData.get('proxied') ? 1 : 0
+				})
+			});
+
+			const result = await response.json();
+			if (result.success) {
+				dnsAddForm.reset();
+				loadDnsRecords();
+			} else {
+				alert('Error adding record: ' + (result.data?.message || 'Unknown'));
+			}
+		});
+	}
+
+	// Handle Delete
+	dnsTableBody?.addEventListener('click', async e => {
+		if (e.target.classList.contains('delete-dns')) {
+			const id = e.target.getAttribute('data-id');
+
+			if (!confirm('Delete this DNS record?')) return;
+
+			const response = await fetch(ajaxurl, {
+				method: 'POST',
+				credentials: 'same-origin',
+				body: new URLSearchParams({
+					action: 'static_shield_dns_delete',
+					id
+				})
+			});
+
+			const result = await response.json();
+			if (result.success) {
+				loadDnsRecords();
+			} else {
+				alert('Error deleting record: ' + (result.data?.message || 'Unknown'));
+			}
+		}
+	});
+
+	// Autoload records when DNS tab is opened
+	document.querySelector('[data-target="dns-settings"]')?.addEventListener('click', loadDnsRecords);
 });
