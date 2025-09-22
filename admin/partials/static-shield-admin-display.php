@@ -27,7 +27,7 @@
         <!-- Navigation -->
         <div class="nav-section">
             <h4 class="settings-headline">Tools</h4>
-            <button type="button" class="components-button nav-tab active" data-target="activity-log">
+            <button type="button" class="components-button nav-tab" data-target="activity-log">
                 <span class="dashicons dashicons-update"></span> Activity Log
             </button>
         </div>
@@ -77,24 +77,27 @@
         <!-- Cloudflare Settings Tab -->
         <div id="tab-cloudflare-settings" class="tab-content" style="display:none;">
             <div class="card settings-card">
-                <h3>Cloudflare Settings</h3>
-                <form id="static-shield-cf-form" method="post" action="">
-                    <?php wp_nonce_field('static_shield_save_cf_settings'); ?>
+                <h3>Domain Settings</h3>
+                <form id="static-shield-domain-form" method="post" action="">
+                    <?php wp_nonce_field('static_shield_save_domain_settings'); ?>
                     <label>
                         API Token
                         <input type="text" name="static_shield_cf_api_key"
                                value="<?php echo esc_attr(get_option('static_shield_cf_api_key')); ?>">
                     </label>
                     <label>
-                        Access Key ID
-                        <input type="text" name="static_shield_cf_access_key_id"
-                               value="<?php echo esc_attr(get_option('static_shield_cf_access_key_id')); ?>">
+                        Cloudflare Worker
+                        <input type="text" name="static_shield_cf_worker"
+                               value="<?php echo esc_attr(get_option('static_shield_cf_worker')); ?>">
                     </label>
-                    <label>
-                        Secret Access Key
-                        <input type="text" name="static_shield_cf_secret_access_key"
-                               value="<?php echo esc_attr(get_option('static_shield_cf_secret_access_key')); ?>">
-                    </label>
+                    <input type="submit" value="Save Domain Settings">
+                </form>
+            </div>
+
+            <div class="card settings-card">
+                <h3>Workers Settings</h3>
+                <form id="static-shield-worker-form" method="post" action="">
+                    <?php wp_nonce_field('static_shield_save_worker_settings'); ?>
                     <label>
                         Account ID
                         <input type="text" name="static_shield_cf_account_id"
@@ -106,9 +109,14 @@
                                value="<?php echo esc_attr(get_option('static_shield_cf_bucket')); ?>">
                     </label>
                     <label>
-                        Cloudflare Worker
-                        <input type="text" name="static_shield_cf_worker"
-                               value="<?php echo esc_attr(get_option('static_shield_cf_worker')); ?>">
+                        Access Key ID
+                        <input type="text" name="static_shield_cf_access_key_id"
+                               value="<?php echo esc_attr(get_option('static_shield_cf_access_key_id')); ?>">
+                    </label>
+                    <label>
+                        Secret Access Key
+                        <input type="text" name="static_shield_cf_secret_access_key"
+                               value="<?php echo esc_attr(get_option('static_shield_cf_secret_access_key')); ?>">
                     </label>
                     <label class="toggle-switch">
                         <input type="checkbox" name="static_shield_use_cf" value="1"
@@ -116,10 +124,11 @@
                         <span class="slider"></span>
                         <span class="toggle-label">Enable Workers</span>
                     </label>
-                    <input type="submit" value="Save Settings">
+                    <input type="submit" value="Save Workers Settings">
                 </form>
             </div>
         </div>
+
         <!-- DNS Management Tab -->
         <div id="tab-dns-settings" class="tab-content" style="display:none;">
             <div class="card settings-card">

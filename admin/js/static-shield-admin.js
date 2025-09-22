@@ -4,30 +4,65 @@ document.addEventListener('DOMContentLoaded', () => {
 	const terminal = document.querySelector('.terminal');
 
 	// Tabs
+	function openTab(target) {
+		// Toggle active class for tabs
+		tabs.forEach(t => t.classList.toggle('active', t.getAttribute('data-target') === target));
+
+		contents.forEach(c => {
+			c.style.display = (c.id === 'tab-' + target) ? 'block' : 'none';
+		});
+
+		// Update hash without scrolling
+		try {
+			history.replaceState(null, '', '#' + target);
+		} catch (err) {
+			// ignore in environments that disallow replaceState
+			location.hash = target;
+		}
+
+		if (target === 'activity-log') {
+			fetchLogs();
+		} else if (target === 'dns-settings') {
+			loadDnsRecords();
+		}
+	}
+
 	tabs.forEach(tab => {
-		tab.addEventListener('click', () => {
+		tab.addEventListener('click', (e) => {
+			e.preventDefault();
 			const target = tab.getAttribute('data-target');
-
-			tabs.forEach(t => t.classList.remove('active'));
-			contents.forEach(c => c.style.display = 'none');
-
-			tab.classList.add('active');
-			const activeContent = document.getElementById('tab-' + target);
-			if (activeContent) {
-				activeContent.style.display = 'block';
-			}
+			openTab(target);
 		});
 	});
 
+	(function restoreInitialTab() {
+		const hash = (location.hash || '').replace(/^#/, '');
+		if (hash && document.querySelector('.nav-tab[data-target="' + hash + '"]')) {
+			openTab(hash);
+			return;
+		}
+
+		const activeTab = document.querySelector('.nav-tab.active');
+		if (activeTab) {
+			openTab(activeTab.getAttribute('data-target'));
+			return;
+		}
+
+		openTab('activity-log');
+	})();
+
 	// Logs
 	async function fetchLogs() {
+		if (!terminal) return;
+
 		try {
 			const response = await fetch(ajaxurl + '?action=static_shield_get_logs', {
 				credentials: 'same-origin'
 			});
 			const result = await response.json();
-			if (result.success && terminal) {
-				terminal.innerHTML = '';
+			terminal.innerHTML = '';
+
+			if (result.success && result.data && Array.isArray(result.data.logs)) {
 				result.data.logs.forEach(line => {
 					let cssClass = 'log-info';
 					if (line.includes('[error]')) cssClass = 'log-error';
@@ -35,11 +70,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 					const span = document.createElement('span');
 					span.className = cssClass;
-					span.innerHTML = line;
+					span.textContent = line;
 					terminal.appendChild(span);
 					terminal.appendChild(document.createElement('br'));
 				});
 				terminal.scrollTop = terminal.scrollHeight;
+			} else {
+				terminal.innerHTML = '<span class="log-info">No logs available.</span>';
 			}
 		} catch (err) {
 			console.error('Error fetching logs:', err);
@@ -47,54 +84,40 @@ document.addEventListener('DOMContentLoaded', () => {
 	}
 
 	setInterval(() => {
-		const activityTab = document.getElementById('tab-activity-log');
-		if (activityTab && activityTab.style.display !== 'none') {
+		const activityTabContent = document.getElementById('tab-activity-log');
+		if (activityTabContent && activityTabContent.style.display !== 'none') {
 			fetchLogs();
 		}
 	}, 5000);
 
-	fetchLogs();
+	// Handle Domain Settings save
+	const domainForm = document.querySelector('#static-shield-domain-form');
+	if (domainForm) {
+		const saveBtn = domainForm.querySelector('input[type="submit"]');
 
-	// Cloudflare API Save
-	const cfForm = document.querySelector('#static-shield-cf-form');
-	if (cfForm) {
-		const saveBtn = cfForm.querySelector('input[type="submit"]');
-
-		cfForm.addEventListener('submit', async (e) => {
+		domainForm.addEventListener('submit', async e => {
 			e.preventDefault();
-
 			saveBtn.disabled = true;
 			const originalText = saveBtn.value;
 			saveBtn.value = 'Saving...';
 
 			try {
-				const formData = new FormData(cfForm);
-
+				const formData = new FormData(domainForm);
 				const response = await fetch(ajaxurl, {
 					method: 'POST',
 					credentials: 'same-origin',
 					body: new URLSearchParams({
-						action: 'static_shield_save_cf_settings',
+						action: 'static_shield_save_domain_settings',
 						_wpnonce: formData.get('_wpnonce'),
 						api_key: formData.get('static_shield_cf_api_key'),
-						account_id: formData.get('static_shield_cf_account_id'),
-						bucket: formData.get('static_shield_cf_bucket'),
-						access_key_id: formData.get('static_shield_cf_access_key_id'),
-						secret_access_key: formData.get('static_shield_cf_secret_access_key'),
-						cf_worker_url: formData.get('static_shield_cf_worker'),
-						use_cf: formData.get('static_shield_use_cf') ? 1 : 0
+						cf_worker_url: formData.get('static_shield_cf_worker')
 					})
 				});
 
 				const result = await response.json();
-				if (result.success) {
-					saveBtn.value = 'Saved!';
-				} else {
-					saveBtn.value = 'Error';
-					console.error(result.data.message);
-				}
+				saveBtn.value = result.success ? 'Saved!' : 'Error';
 			} catch (err) {
-				console.error('Error saving settings:', err);
+				console.error('Error saving domain settings:', err);
 				saveBtn.value = 'Error';
 			} finally {
 				setTimeout(() => {
@@ -105,30 +128,73 @@ document.addEventListener('DOMContentLoaded', () => {
 		});
 	}
 
-	const customSelects = document.querySelectorAll(".custom-select");
+	// Handle Worker Settings save
+	const workerForm = document.querySelector('#static-shield-worker-form');
+	if (workerForm) {
+		const saveBtn = workerForm.querySelector('input[type="submit"]');
+
+		workerForm.addEventListener('submit', async e => {
+			e.preventDefault();
+			saveBtn.disabled = true;
+			const originalText = saveBtn.value;
+			saveBtn.value = 'Saving...';
+
+			try {
+				const formData = new FormData(workerForm);
+				const response = await fetch(ajaxurl, {
+					method: 'POST',
+					credentials: 'same-origin',
+					body: new URLSearchParams({
+						action: 'static_shield_save_worker_settings',
+						_wpnonce: formData.get('_wpnonce'),
+						account_id: formData.get('static_shield_cf_account_id'),
+						bucket: formData.get('static_shield_cf_bucket'),
+						access_key_id: formData.get('static_shield_cf_access_key_id'),
+						secret_access_key: formData.get('static_shield_cf_secret_access_key'),
+						use_cf: formData.get('static_shield_use_cf') ? 1 : 0
+					})
+				});
+
+				const result = await response.json();
+				saveBtn.value = result.success ? 'Saved!' : 'Error';
+			} catch (err) {
+				console.error('Error saving worker settings:', err);
+				saveBtn.value = 'Error';
+			} finally {
+				setTimeout(() => {
+					saveBtn.value = originalText;
+					saveBtn.disabled = false;
+				}, 1500);
+			}
+		});
+	}
+
+	const customSelects = document.querySelectorAll('.custom-select');
 
 	customSelects.forEach(select => {
-		const selected = select.querySelector(".selected");
-		const options = select.querySelectorAll(".options li");
-		const hiddenInput = select.parentElement.querySelector("input[type=hidden]");
+		const selected = select.querySelector('.selected');
+		const options = select.querySelectorAll('.options li');
+		const hiddenInput = select.parentElement.querySelector('input[type=hidden]');
 
-		selected.addEventListener("click", e => {
+		selected.addEventListener('click', e => {
 			e.stopPropagation();
-			select.classList.toggle("open");
+			select.classList.toggle('open');
 		});
 
 		options.forEach(option => {
-			option.addEventListener("click", e => {
+			option.addEventListener('click', e => {
 				e.stopPropagation();
 				selected.textContent = option.textContent;
 				hiddenInput.value = option.dataset.value;
-				select.classList.remove("open");
+				select.classList.remove('open');
+
+				customSelects.forEach(s => { if (s !== select) s.classList.remove('open'); });
 			});
 		});
 	});
 
-	document.addEventListener("click", () => {
-		customSelects.forEach(select => select.classList.remove("open"));
+	document.addEventListener('click', () => {
+		customSelects.forEach(select => select.classList.remove('open'));
 	});
 
 	// DNS Management
@@ -140,21 +206,23 @@ document.addEventListener('DOMContentLoaded', () => {
 			const response = await fetch(ajaxurl + '?action=static_shield_dns_list', { credentials: 'same-origin' });
 			const result = await response.json();
 
+			if (!dnsTableBody) return;
+
 			dnsTableBody.innerHTML = '';
 
-			if (result.success && result.data.records && result.data.records.result) {
+			if (result.success && result.data && result.data.records && Array.isArray(result.data.records.result)) {
 				result.data.records.result.forEach(record => {
 					const tr = document.createElement('tr');
 					tr.innerHTML = `
-                    <td>${record.type}</td>
-                    <td>${record.name}</td>
-                    <td>${record.content}</td>
-                    <td>${record.ttl}</td>
-                    <td>${record.proxied ? 'Yes' : 'No'}</td>
-                    <td>
-                        <button data-id="${record.id}" class="button delete-dns">Delete</button>
-                    </td>
-                `;
+                        <td>${escapeHtml(record.type)}</td>
+                        <td>${escapeHtml(record.name)}</td>
+                        <td>${escapeHtml(record.content)}</td>
+                        <td>${escapeHtml(record.ttl)}</td>
+                        <td>${record.proxied ? '<span class="toggle-label-on">Yes</span>' : '<span class="toggle-label-off">No</span>'}</td>
+                        <td>
+                            <button data-id="${record.id}" class="button delete-dns">Delete</button>
+                        </td>
+                    `;
 					dnsTableBody.appendChild(tr);
 				});
 			} else {
@@ -162,7 +230,18 @@ document.addEventListener('DOMContentLoaded', () => {
 			}
 		} catch (err) {
 			console.error('Error loading DNS records:', err);
+			if (dnsTableBody) dnsTableBody.innerHTML = '<tr><td colspan="6">Error loading records.</td></tr>';
 		}
+	}
+
+	// Helper to escape HTML in inserts
+	function escapeHtml(str = '') {
+		return String(str)
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;')
+			.replace(/'/g, '&#039;');
 	}
 
 	// Handle Add Record
@@ -220,5 +299,5 @@ document.addEventListener('DOMContentLoaded', () => {
 	});
 
 	// Autoload records when DNS tab is opened
-	document.querySelector('[data-target="dns-settings"]')?.addEventListener('click', loadDnsRecords);
+	document.querySelector('[data-target="dns-settings"]')?.addEventListener('click', () => loadDnsRecords());
 });

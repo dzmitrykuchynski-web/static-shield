@@ -217,10 +217,67 @@ class StaticShieldAdmin {
      */
     public function registerAjax() {
         add_action('wp_ajax_static_shield_get_logs', [$this, 'ajaxGetLogs']);
-        add_action('wp_ajax_static_shield_save_cf_settings', [$this, 'ajaxSaveCfSettings']);
+        add_action('wp_ajax_static_shield_save_domain_settings', [$this, 'ajaxSaveDomainSettings']);
+        add_action('wp_ajax_static_shield_save_worker_settings', [$this, 'ajaxSaveWorkerSettings']);
         add_action('wp_ajax_static_shield_dns_list', [$this, 'ajaxDnsList']);
         add_action('wp_ajax_static_shield_dns_add', [$this, 'ajaxDnsAdd']);
         add_action('wp_ajax_static_shield_dns_delete', [$this, 'ajaxDnsDelete']);
+    }
+
+    /**
+     * AJAX handler for saving Cloudflare Domain settings.
+     *
+     * @since 1.0.0
+     * @return void Sends JSON response.
+     */
+    public function ajaxSaveDomainSettings() {
+        if ( ! current_user_can('manage_options') ) {
+            wp_send_json_error(['message' => 'Unauthorized'], 403);
+        }
+
+        $nonce = $_POST['_wpnonce'] ?? '';
+        if ( ! wp_verify_nonce($nonce, 'static_shield_save_domain_settings') ) {
+            wp_send_json_error(['message' => 'Invalid nonce'], 403);
+        }
+
+        $apiKey    = sanitize_text_field($_POST['api_key'] ?? '');
+        $workerUrl = sanitize_text_field($_POST['cf_worker_url'] ?? '');
+
+        update_option('static_shield_cf_api_key', $apiKey);
+        update_option('static_shield_cf_worker', $workerUrl);
+
+        wp_send_json_success(['message' => 'Domain settings saved']);
+    }
+
+    /**
+     * AJAX handler for saving Cloudflare Worker and R2 settings.
+     *
+     * @since 1.0.0
+     * @return void Sends JSON response.
+     */
+    public function ajaxSaveWorkerSettings() {
+        if ( ! current_user_can('manage_options') ) {
+            wp_send_json_error(['message' => 'Unauthorized'], 403);
+        }
+
+        $nonce = $_POST['_wpnonce'] ?? '';
+        if ( ! wp_verify_nonce($nonce, 'static_shield_save_worker_settings') ) {
+            wp_send_json_error(['message' => 'Invalid nonce'], 403);
+        }
+
+        $accountId   = sanitize_text_field($_POST['account_id'] ?? '');
+        $bucket      = sanitize_text_field($_POST['bucket'] ?? '');
+        $accessKeyId = sanitize_text_field($_POST['access_key_id'] ?? '');
+        $secretKey   = sanitize_text_field($_POST['secret_access_key'] ?? '');
+        $useCf       = isset($_POST['use_cf']) ? 1 : 0;
+
+        update_option('static_shield_cf_account_id', $accountId);
+        update_option('static_shield_cf_bucket', $bucket);
+        update_option('static_shield_cf_access_key_id', $accessKeyId);
+        update_option('static_shield_cf_secret_access_key', $secretKey);
+        update_option('static_shield_use_cf', $useCf);
+
+        wp_send_json_success(['message' => 'Worker settings saved']);
     }
 
     /**
@@ -274,41 +331,6 @@ class StaticShieldAdmin {
         }
 
         wp_send_json_success(['deleted' => $id]);
-    }
-
-    /**
-     * AJAX handler for saving Cloudflare Worker and R2 settings.
-     *
-     * @since 1.0.0
-     * @return void Sends JSON response.
-     */
-    public function ajaxSaveCfSettings() {
-        if ( ! current_user_can('manage_options') ) {
-            wp_send_json_error(['message' => 'Unauthorized'], 403);
-        }
-
-        $nonce = $_POST['_wpnonce'] ?? '';
-        if ( ! wp_verify_nonce($nonce, 'static_shield_save_cf_settings') ) {
-            wp_send_json_error(['message' => 'Invalid nonce'], 403);
-        }
-
-        $apiKey      = sanitize_text_field($_POST['api_key'] ?? '');
-        $accountId   = sanitize_text_field($_POST['account_id'] ?? '');
-        $bucket      = sanitize_text_field($_POST['bucket'] ?? '');
-        $accessKeyId = sanitize_text_field($_POST['access_key_id'] ?? '');
-        $secretKey   = sanitize_text_field($_POST['secret_access_key'] ?? '');
-        $workerUrl   = sanitize_text_field($_POST['cf_worker_url'] ?? '');
-        $useCf       = isset($_POST['use_cf']) ? 1 : 0;
-
-        update_option('static_shield_cf_api_key', $apiKey);
-        update_option('static_shield_cf_account_id', $accountId);
-        update_option('static_shield_cf_bucket', $bucket);
-        update_option('static_shield_cf_access_key_id', $accessKeyId);
-        update_option('static_shield_cf_secret_access_key', $secretKey);
-        update_option('static_shield_cf_worker', $workerUrl);
-        update_option('static_shield_use_cf', $useCf);
-
-        wp_send_json_success(['message' => 'Settings saved']);
     }
 
     /**
