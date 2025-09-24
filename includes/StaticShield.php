@@ -15,7 +15,7 @@ use StaticShield\Admin\StaticShieldAdmin;
  * @package    Static_Shield
  * @subpackage Static_Shield/includes
  */
-class StaticShield {
+final class StaticShield {
 
     /**
      * Loader to maintain and register all hooks.
@@ -53,8 +53,8 @@ class StaticShield {
      * @since    1.0.0
      */
     public function __construct() {
-        $this->version = defined( 'STATIC_SHIELD_VERSION' ) ? STATIC_SHIELD_VERSION : '1.0.0';
-        $this->pluginName = 'static-shield';
+        $this->version = defined('STATIC_SHIELD_VERSION') ? STATIC_SHIELD_VERSION : '1.0.0';
+        $this->pluginName = defined('STATIC_SHIELD_PLUGIN_NAME') ? STATIC_SHIELD_PLUGIN_NAME : 'static-shield';
 
         $this->loadDependencies();
         $this->setLocale();
@@ -74,7 +74,11 @@ class StaticShield {
      * @access   private
      */
     private function loadDependencies() {
-        $this->loader = new StaticShieldLoader();
+        try {
+            $this->loader = new StaticShieldLoader();
+        } catch (\Throwable $e) {
+            error_log('[StaticShield] Failed to load dependencies: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -85,7 +89,7 @@ class StaticShield {
      */
     private function setLocale() {
         $pluginI18n = new StaticShieldI18n();
-        $this->loader->addAction( 'plugins_loaded', $pluginI18n, 'loadPluginTextdomain' );
+        $this->loader->addAction('plugins_loaded', $pluginI18n, 'loadPluginTextdomain');
     }
 
     /**
@@ -95,17 +99,21 @@ class StaticShield {
      * @access   private
      */
     private function defineAdminHooks() {
-        $pluginAdmin = new StaticShieldAdmin( $this->getPluginName(), $this->getVersion() );
+        $pluginAdmin = new StaticShieldAdmin($this->getPluginName(), $this->getVersion());
 
-        $this->loader->addAction( 'admin_enqueue_scripts', $pluginAdmin, 'enqueueStyles' );
-        $this->loader->addAction( 'admin_enqueue_scripts', $pluginAdmin, 'enqueueScripts' );
-        $this->loader->addAction( 'admin_menu', $pluginAdmin, 'addAdminMenu' );
-        $this->loader->addAction( 'admin_init', $pluginAdmin, 'registerSettings' );
-        $this->loader->addAction( 'admin_init', $pluginAdmin, 'handleManualExport' );
-        $this->loader->addAction( 'save_post', $pluginAdmin, 'handlePostUpdate', 10, 3 );
-        $this->loader->addFilter( 'plugin_action_links_' . STATIC_SHIELD_BASENAME, $pluginAdmin, 'addPluginActionLinks' );
+        $this->loader->addAction('admin_enqueue_scripts', $pluginAdmin, 'enqueueStyles');
+        $this->loader->addAction('admin_enqueue_scripts', $pluginAdmin, 'enqueueScripts');
+        $this->loader->addAction('admin_menu', $pluginAdmin, 'addAdminMenu');
+        $this->loader->addAction('admin_init', $pluginAdmin, 'registerSettings');
+        $this->loader->addAction('admin_init', $pluginAdmin, 'handleManualExport');
+        $this->loader->addAction('save_post', $pluginAdmin, 'handlePostUpdate', 10, 3);
+        $this->loader->addFilter('plugin_action_links_' . STATIC_SHIELD_BASENAME, $pluginAdmin, 'addPluginActionLinks');
 
-        $pluginAdmin->registerHooks($this->loader);
+        if (method_exists($pluginAdmin, 'registerHooks')) {
+            $pluginAdmin->registerHooks($this->loader);
+        } else {
+            error_log('[StaticShield] Warning: StaticShieldAdmin::registerHooks() does not exist.');
+        }
     }
 
     /**
@@ -131,7 +139,7 @@ class StaticShield {
      * Get loader instance.
      *
      * @since     1.0.0
-     * @return    Loader
+     * @return    StaticShieldLoader
      */
     public function getLoader() {
         return $this->loader;

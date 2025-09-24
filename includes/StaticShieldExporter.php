@@ -42,11 +42,10 @@ class StaticShieldExporter {
 
     public function __construct() {
         $uploads = wp_get_upload_dir();
+        $baseDir = ($uploads['basedir'] ?? wp_upload_dir()['basedir']) . '/static-shield-builds';
 
-        $baseDir        = $uploads['basedir'] . '/static-shield-builds';
         $this->buildDir = $baseDir . '/temp';
         $this->zipPath  = $baseDir . '/static-shield-builds.zip';
-
         $this->startTime = microtime(true);
     }
 
@@ -56,23 +55,24 @@ class StaticShieldExporter {
      * @return string Path to the created ZIP archive.
      */
     public function runExport() {
-        update_option('static_shield_last_log', []);
+        $this->log = [];
+        $this->logEntry("Starting export...");
 
-        $this->log[] = $this->logEntry("Starting export...");
+        if (!$this->prepareBuildDir()) {
+            $this->finalizeLog();
+            return '';
+        }
 
-        $this->prepareBuildDir();
-
-        $this->exportUrl( home_url(), 'index.html' );
+        $this->exportUrl(home_url(), 'index.html');
         $this->exportAllPages();
         $this->copyUploads();
         $this->copyWpIncludesAssets();
         $this->createZip();
 
         $duration = round(microtime(true) - $this->startTime, 2);
-        $this->log[] = $this->logEntry("Export finished in {$duration} seconds");
+        $this->logEntry("Export finished in {$duration} seconds");
 
-        // Save the log in option for display in the admin panel
-        update_option('static_shield_last_log', $this->log);
+        $this->finalizeLog();
 
         return $this->zipPath;
     }
@@ -90,16 +90,21 @@ class StaticShieldExporter {
      * Prepare the build directory by cleaning old files.
      */
     private function prepareBuildDir() {
-        if ( file_exists( $this->buildDir ) ) {
-            $this->rrmdir( $this->buildDir );
-        }
-        wp_mkdir_p( $this->buildDir );
-
-        if ( file_exists( $this->zipPath ) ) {
-            unlink( $this->zipPath );
+        if (file_exists($this->buildDir) ) {
+            $this->rrmdir($this->buildDir);
         }
 
-        $this->log[] = $this->logEntry("Build directory prepared: {$this->buildDir}");
+        if (!wp_mkdir_p($this->buildDir)) {
+            $this->logEntry("Failed to create build directory: {$this->buildDir}", 'error');
+            return false;
+        }
+
+        if (file_exists($this->zipPath)) {
+            @unlink($this->zipPath);
+        }
+
+        $this->logEntry("Build directory prepared: {$this->buildDir}");
+        return true;
     }
 
     /**
@@ -108,19 +113,27 @@ class StaticShieldExporter {
      * @param string $url URL to export.
      * @param string $filename Filename to save the HTML as.
      */
-    private function exportUrl( $url, $filename ) {
-        $response = wp_remote_get( $url );
+    private function exportUrl($url, $filename) {
+        $filename = preg_replace('/[^a-zA-Z0-9_\-\.]/', '_', $filename);
+        $response = wp_remote_get($url, [
+            'timeout' => 30,
+            'sslverify' => true
+        ]);
 
-        if ( is_wp_error( $response ) ) {
-            $this->log[] = $this->logEntry("Failed: {$url} (" . $response->get_error_message() . ")", 'error');
+        if (is_wp_error($response)) {
+            $this->logEntry("Failed: {$url} ({$response->get_error_message()})", 'error');
             return;
         }
 
-        $html = wp_remote_retrieve_body( $response );
+        $html = wp_remote_retrieve_body($response);
         $path = $this->buildDir . '/' . $filename;
 
-        file_put_contents( $path, $html );
-        $this->log[] = $this->logEntry("Exported: {$url} → {$filename}");
+        if (@file_put_contents($path, $html) === false) {
+            $this->logEntry("Failed to write file: {$path}", 'error');
+            return;
+        }
+
+        $this->logEntry("Exported: {$url} → {$filename}");
     }
 
     /**
@@ -128,13 +141,15 @@ class StaticShieldExporter {
      */
     private function exportAllPages() {
         $pages = get_pages();
-        foreach ( $pages as $page ) {
-            $this->exportUrl( get_permalink($page->ID), ($page->post_name ?: $page->ID) . '.html' );
+        foreach ($pages as $page) {
+            $filename = ($page->post_name ?: $page->ID) . '.html';
+            $this->exportUrl(get_permalink($page->ID), $filename);
         }
 
-        $posts = get_posts([ 'numberposts' => -1 ]);
-        foreach ( $posts as $post ) {
-            $this->exportUrl( get_permalink($post->ID), ($post->post_name ?: $post->ID) . '.html' );
+        $posts = get_posts(['numberposts' => -1]);
+        foreach ($posts as $post) {
+            $filename = ($post->post_name ?: $post->ID) . '.html';
+            $this->exportUrl(get_permalink($post->ID), $filename);
         }
     }
 
@@ -143,60 +158,60 @@ class StaticShieldExporter {
      */
     private function copyUploads() {
         $uploads = wp_get_upload_dir();
+        $src = $uploads['basedir'] ?? wp_upload_dir()['basedir'];
+        $dst = $this->buildDir . '/uploads';
 
-        $this->copyDir(
-            $uploads['basedir'],
-            $this->buildDir . '/uploads',
-            [ $uploads['basedir'] . '/static-shield-builds' ]
-        );
-
-        $this->log[] = $this->logEntry("Copied uploads directory");
+        $this->copyDir($src, $dst, [$src . '/static-shield-builds']);
+        $this->logEntry("Copied uploads directory");
     }
 
     /**
      * Copy wp-includes JS and CSS assets to the build directory.
      */
     private function copyWpIncludesAssets() {
-        $this->copyDir( ABSPATH . 'wp-includes/js', $this->buildDir . '/wp-includes/js' );
-        $this->copyDir( ABSPATH . 'wp-includes/css', $this->buildDir . '/wp-includes/css' );
-        $this->log[] = $this->logEntry("Copied wp-includes assets");
+        $this->copyDir(ABSPATH . 'wp-includes/js', $this->buildDir . '/wp-includes/js');
+        $this->copyDir(ABSPATH . 'wp-includes/css', $this->buildDir . '/wp-includes/css');
+        $this->logEntry("Copied wp-includes assets");
     }
 
     /**
      * Create a ZIP archive from the build directory.
      */
     private function createZip() {
-        if ( ! class_exists( 'ZipArchive' ) ) {
-            $this->log[] = $this->logEntry("ZipArchive not available", 'error');
+        if (!class_exists('ZipArchive')) {
+            $this->logEntry("ZipArchive not available", 'error');
             return;
         }
 
         $zip = new \ZipArchive();
-        if ( $zip->open( $this->zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE ) !== true ) {
-            $this->log[] = $this->logEntry("Failed to create ZIP archive", 'error');
+        if ($zip->open($this->zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            $this->logEntry("Failed to create ZIP archive", 'error');
             return;
         }
 
         $files = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator( $this->buildDir, \RecursiveDirectoryIterator::SKIP_DOTS ),
+            new \RecursiveDirectoryIterator($this->buildDir, \RecursiveDirectoryIterator::SKIP_DOTS),
             \RecursiveIteratorIterator::SELF_FIRST
         );
 
-        foreach ( $files as $file ) {
+        foreach ($files as $file) {
             $filePath = $file->getRealPath();
-            $relativePath = substr( $filePath, strlen( $this->buildDir ) + 1 );
+            if (!$filePath) continue;
 
-            if ( $file->isDir() ) {
-                $zip->addEmptyDir( $relativePath );
+            $relativePath = substr($filePath, strlen($this->buildDir) + 1);
+            if (strpos($relativePath, '..') !== false) continue;
+
+            if ($file->isDir()) {
+                $zip->addEmptyDir($relativePath);
             } else {
-                $zip->addFile( $filePath, $relativePath );
+                $zip->addFile($filePath, $relativePath);
             }
         }
 
         $zip->close();
 
-        $size = size_format( filesize($this->zipPath) );
-        $this->log[] = $this->logEntry("ZIP archive created ({$size})");
+        $size = size_format(filesize($this->zipPath));
+        $this->logEntry("ZIP archive created ({$size})");
     }
 
     /**
@@ -204,18 +219,19 @@ class StaticShieldExporter {
      *
      * @param string $dir Directory path.
      */
-    private function rrmdir( $dir ) {
-        if ( ! is_dir( $dir ) ) return;
-        foreach ( scandir($dir) as $object ) {
-            if ( $object === "." || $object === ".." ) continue;
+    private function rrmdir($dir) {
+        if (!is_dir($dir)) return;
+
+        foreach (scandir($dir) as $object) {
+            if ($object === '.' || $object === '..') continue;
+
             $path = $dir . "/" . $object;
-            if ( is_dir( $path ) ) {
-                $this->rrmdir( $path );
-            } else {
-                unlink( $path );
-            }
+
+            if (is_link($path)) continue;
+            if (is_dir($path)) $this->rrmdir($path);
+            else @unlink($path);
         }
-        rmdir( $dir );
+        @rmdir($dir);
     }
 
     /**
@@ -225,30 +241,40 @@ class StaticShieldExporter {
      * @param string $dst Destination directory.
      * @param array  $exclude Paths to exclude.
      */
-    private function copyDir( $src, $dst, $exclude = [] ) {
-        if ( ! is_dir( $src ) ) return;
-        wp_mkdir_p( $dst );
-        $dir = opendir( $src );
+    private function copyDir($src, $dst, $exclude = []) {
+        if (!is_dir($src)) return;
+        wp_mkdir_p($dst);
 
-        while ( false !== ( $file = readdir( $dir ) ) ) {
-            if ( $file === '.' || $file === '..' ) continue;
+        $dir = opendir($src);
+        if (!$dir) return;
+
+        while (false !== ($file = readdir($dir))) {
+            if ($file === '.' || $file === '..') continue;
 
             $srcPath = $src . '/' . $file;
             $dstPath = $dst . '/' . $file;
 
-            foreach ( $exclude as $ex ) {
-                if ( strpos( $srcPath, $ex ) === 0 ) {
-                    continue 2;
+            if (is_link($srcPath)) continue;
+
+            $skip = false;
+            foreach ($exclude as $ex) {
+                if (strpos($srcPath, $ex) === 0) {
+                    $skip = true;
+                    break;
                 }
             }
+            if ($skip) continue;
 
-            if ( is_dir( $srcPath ) ) {
-                $this->copyDir( $srcPath, $dstPath, $exclude );
+            if (is_dir($srcPath)) {
+                $this->copyDir($srcPath, $dstPath, $exclude);
             } else {
-                copy( $srcPath, $dstPath );
+                if (!@copy($srcPath, $dstPath)) {
+                    $this->logEntry("Failed to copy file: {$srcPath}", 'error');
+                }
             }
         }
-        closedir( $dir );
+
+        closedir($dir);
     }
 
     /**
@@ -259,14 +285,19 @@ class StaticShieldExporter {
      *
      * @return string Formatted log entry.
      */
-    private function logEntry( $message, $type = 'info' ) {
+    private function logEntry($message, $type = 'info') {
         $time = current_time('mysql');
         $entry = "[{$time}] [{$type}] {$message}";
-
-        $currentLog = get_option('static_shield_last_log', []);
-        $currentLog[] = $entry;
-        update_option('static_shield_last_log', $currentLog);
-
+        $this->log[] = $entry;
         return $entry;
+    }
+
+    /**
+     * Wright log.
+     */
+    private function finalizeLog() {
+        $existingLog = get_option('static_shield_last_log', []);
+        $mergedLog = array_merge($existingLog, $this->log);
+        update_option('static_shield_last_log', $mergedLog);
     }
 }

@@ -63,8 +63,8 @@ class StaticShieldLoader {
 	 * @param    int                  $priority         Optional. The priority at which the function should be fired. Default is 10.
 	 * @param    int                  $acceptedArgs    Optional. The number of arguments that should be passed to the $callback. Default is 1.
 	 */
-	public function addAction( $hook, $component, $callback, $priority = 10, $acceptedArgs = 1 ) {
-		$this->actions = $this->add( $this->actions, $hook, $component, $callback, $priority, $acceptedArgs );
+	public function addAction($hook, $component, $callback, $priority = 10, $acceptedArgs = 1) {
+		$this->actions = $this->add($this->actions, $hook, $component, $callback, $priority, $acceptedArgs);
 	}
 
 	/**
@@ -95,7 +95,7 @@ class StaticShieldLoader {
 	 * @param    int                  $acceptedArgs    The number of arguments that should be passed to the $callback.
 	 * @return   array                                  The collection of actions and filters registered with WordPress.
 	 */
-	private function add( $hooks, $hook, $component, $callback, $priority, $acceptedArgs ) {
+	private function add($hooks, $hook, $component, $callback, $priority, $acceptedArgs) {
 
 		$hooks[] = array(
 			'hook'          => $hook,
@@ -114,16 +114,30 @@ class StaticShieldLoader {
 	 *
 	 * @since    1.0.0
 	 */
-	public function run() {
+    public function run() {
+        foreach ($this->filters as $hook) {
+            $hookName  = isset($hook['hook']) ? $hook['hook'] : null;
+            $component = isset($hook['component']) ? $hook['component'] : null;
+            $callback  = isset($hook['callback']) ? $hook['callback'] : null;
+            $priority  = isset($hook['priority']) ? (int) $hook['priority'] : 10;
+            $accepted  = isset($hook['accepted_args']) ? (int) $hook['accepted_args'] : 1;
 
-		foreach ( $this->filters as $hook ) {
-			add_filter( $hook['hook'], array( $hook['component'], $hook['callback'] ), $hook['priority'], $hook['accepted_args'] );
-		}
+            if ( $hookName && $component && $callback && is_callable([$component, $callback]) ) {
+                add_filter($hookName, [$component, $callback], $priority, $accepted);
+            }
+        }
 
-		foreach ( $this->actions as $hook ) {
-			add_action( $hook['hook'], array( $hook['component'], $hook['callback'] ), $hook['priority'], $hook['accepted_args'] );
-		}
+        foreach ($this->actions as $hook) {
+            $hookName  = isset($hook['hook']) ? $hook['hook'] : null;
+            $component = isset($hook['component']) ? $hook['component'] : null;
+            $callback  = isset($hook['callback']) ? $hook['callback'] : null;
+            $priority  = isset($hook['priority']) ? (int) $hook['priority'] : 10;
+            $accepted  = isset($hook['accepted_args']) ? (int) $hook['accepted_args'] : 1;
 
-	}
+            if ( $hookName && $component && $callback && is_callable([$component, $callback]) ) {
+                add_action($hookName, [$component, $callback], $priority, $accepted);
+            }
+        }
+    }
 
 }

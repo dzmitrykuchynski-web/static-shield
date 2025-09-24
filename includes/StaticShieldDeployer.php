@@ -75,40 +75,52 @@ class StaticShieldDeployer {
      * @return bool True if upload succeeded, false otherwise.
      */
     public function uploadToR2($zipPath) {
-        if (!file_exists($zipPath)) {
-            $this->log("[error] File not found: $zipPath");
+        if (!file_exists($zipPath) || !is_readable($zipPath)) {
+            $this->log("[error] File not found or not readable: $zipPath");
             return false;
         }
 
-        $objectKey = '';
-        if ($zipPath !== null) {
-            $objectKey = basename($zipPath);
+        if (!$this->accessKeyId || !$this->accessKeySecret || !$this->accountId || !$this->bucket) {
+            $this->log('[error] Missing R2 credentials or bucket configuration');
+            return false;
         }
 
+        $objectKey = basename($zipPath);
+
         try {
-            $credentials = new Credentials($this->accessKeyId, $this->accessKeySecret);
-
-            $s3_client = new S3Client([
-                'region'      => 'auto',
-                'endpoint'    => "https://{$this->accountId}.r2.cloudflarestorage.com",
-                'version'     => 'latest',
-                'credentials' => $credentials,
-            ]);
-
-            $result = $s3_client->putObject([
+            $s3Client = $this->createS3Client();
+            $result = $s3Client->putObject([
                 'Bucket'      => $this->bucket,
                 'Key'         => $objectKey,
                 'SourceFile'  => $zipPath,
                 'ContentType' => 'application/zip',
             ]);
 
-            $this->log("[info] Uploaded to R2 successfully. ETag: " . $result['ETag']);
+            $etag = $result['ETag'] ?? 'N/A';
+            $this->log("[info] Uploaded to R2 successfully. ETag: {$etag}");
+
             return true;
 
         } catch (AwsException $e) {
             $this->log("[error] Upload failed: " . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+     * Create an S3 client configured for Cloudflare R2.
+     *
+     * @return S3Client
+     */
+    private function createS3Client() {
+        $credentials = new Credentials($this->accessKeyId, $this->accessKeySecret);
+
+        return new S3Client([
+            'region'      => 'auto',
+            'endpoint'    => "https://{$this->accountId}.r2.cloudflarestorage.com",
+            'version'     => 'latest',
+            'credentials' => $credentials,
+        ]);
     }
 
     /**

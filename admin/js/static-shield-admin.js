@@ -56,8 +56,13 @@ document.addEventListener('DOMContentLoaded', () => {
 		if (!terminal) return;
 
 		try {
-			const response = await fetch(ajaxurl + '?action=static_shield_get_logs', {
-				credentials: 'same-origin'
+			const response = await fetch(ajaxurl, {
+				method: 'POST',
+				credentials: 'same-origin',
+				body: new URLSearchParams({
+					action: 'static_shield_get_logs',
+					_wpnonce: window.StaticShieldData?.nonce
+				})
 			});
 			const result = await response.json();
 			terminal.innerHTML = '';
@@ -203,7 +208,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	async function loadDnsRecords() {
 		try {
-			const response = await fetch(ajaxurl + '?action=static_shield_dns_list', { credentials: 'same-origin' });
+			const response = await fetch(ajaxurl, {
+				method: 'POST',
+				credentials: 'same-origin',
+				body: new URLSearchParams({
+					action: 'static_shield_dns_list',
+					_wpnonce: window.StaticShieldData?.dnsNonce
+				})
+			});
 			const result = await response.json();
 
 			if (!dnsTableBody) return;
@@ -255,6 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
 				credentials: 'same-origin',
 				body: new URLSearchParams({
 					action: 'static_shield_dns_add',
+					_wpnonce: window.StaticShieldData?.dnsNonce,
 					type: formData.get('type'),
 					name: formData.get('name'),
 					content: formData.get('content'),
@@ -285,6 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
 				credentials: 'same-origin',
 				body: new URLSearchParams({
 					action: 'static_shield_dns_delete',
+					_wpnonce: window.StaticShieldData?.dnsNonce,
 					id
 				})
 			});
