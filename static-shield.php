@@ -44,7 +44,6 @@ use StaticShield\StaticShieldDeactivator;
  * admin-specific hooks, and public-facing site hooks.
  */
 use StaticShield\StaticShield;
-use StaticShield\StaticShieldWorkerHandler;
 
 /**
  * The code that runs during plugin activation.
