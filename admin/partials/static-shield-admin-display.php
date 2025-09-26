@@ -156,25 +156,7 @@
                             <span class="selected">A</span>
                             <ul class="options" role="listbox">
                                 <li role="option" data-value="A">A</li>
-                                <li role="option" data-value="AAAA">AAAA</li>
-                                <li role="option" data-value="CAA">CAA</li>
-                                <li role="option" data-value="CERT">CERT</li>
                                 <li role="option" data-value="CNAME">CNAME</li>
-                                <li role="option" data-value="DNSKEY">DNSKEY</li>
-                                <li role="option" data-value="DS">DS</li>
-                                <li role="option" data-value="HTTPS">HTTPS</li>
-                                <li role="option" data-value="LOC">LOC</li>
-                                <li role="option" data-value="MX">MX</li>
-                                <li role="option" data-value="NAPTR">NAPTR</li>
-                                <li role="option" data-value="NS">NS</li>
-                                <li role="option" data-value="PTR">PTR</li>
-                                <li role="option" data-value="SMIMEA">SMIMEA</li>
-                                <li role="option" data-value="SRV">SRV</li>
-                                <li role="option" data-value="SSHFP">SSHFP</li>
-                                <li role="option" data-value="SVCB">SVCB</li>
-                                <li role="option" data-value="TLSA">TLSA</li>
-                                <li role="option" data-value="TXT">TXT</li>
-                                <li role="option" data-value="URI">URI</li>
                             </ul>
                         </div>
                         <input type="hidden" name="type" id="dns-type" value="A">
